@@ -1,14 +1,14 @@
 package rup.ino.catornot;
 
-import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
-import android.graphics.Canvas;
+import android.Manifest;
+import android.content.pm.PackageManager;
 import android.hardware.Camera;
 import android.os.Bundle;
 import android.os.Handler;
-import android.os.Looper;
 import android.support.annotation.NonNull;
 import android.support.design.widget.BottomNavigationView;
+import android.support.v4.app.ActivityCompat;
+import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.view.MenuItem;
@@ -18,119 +18,173 @@ import android.view.SurfaceView;
 import android.view.View;
 import android.widget.TextView;
 
+import java.io.IOException;
+
 public class MainActivity extends AppCompatActivity implements SurfaceHolder.Callback {
 
-    private TextView mTextView;
-    private SurfaceView mSurfaceView;
-    private SurfaceHolder mHolder;
-    private static Camera camera;
-    private static boolean isPreviewActive = false;
+    class MainCamera implements MainActivitySkeleton.CameraSkeleton {
+        Camera c;
 
-    private static void stopPreview() {
-        if (camera != null)
-            camera.stopPreview();
-        isPreviewActive = false;
-        Log.i("Action","Stopped preview!");
-    }
-
-    /**
-     * When this function returns, mCamera will be null.
-     */
-    private void stopPreviewAndFreeCamera() {
-
-        if (camera != null) {
-            // Call stopPreview() to stop updating the preview surface.
-            stopPreview();
-
-            // Important: Call release() to release the camera for use by other
-            // applications. Applications should release the camera immediately
-            // during onPause() and re-open() it during onResume()).
-            camera.release();
-
-            camera = null;
-            Log.i("Action","Freed preview!");
+        MainCamera(Camera c) {
+            this.c = c;
         }
-    }
 
-    private int getActivityOrientation() {
-        switch (getWindowManager().getDefaultDisplay()
-                .getRotation()) {
-            case Surface.ROTATION_0:
-                return 0;
-            case Surface.ROTATION_90:
-                return 90;
-            case Surface.ROTATION_180:
-                return 180;
-            case Surface.ROTATION_270:
-                return 270;
+        @Override
+        public void stopPreview() {
+            c.stopPreview();
         }
-        throw new RuntimeException("If you got here then something is terribly wrong!");
-    }
 
-    private int getCameraOrientation() {
-        int activityOrient = getActivityOrientation();
-        Camera.CameraInfo cameraInfo = new Camera.CameraInfo();
-        Camera.getCameraInfo(0, cameraInfo);
-        if (cameraInfo.facing == Camera.CameraInfo.CAMERA_FACING_FRONT) {
-            return (360 - (cameraInfo.orientation + activityOrient) % 360) % 360;  // compensate the mirror
-        } else {  // back-facing
-            return (cameraInfo.orientation - activityOrient + 360) % 360;
+        @Override
+        public void release() {
+            c.release();
         }
-    }
-    private static void startPreview() {
-        if (camera == null) throw new RuntimeException("You should not be here!");
-        camera.setOneShotPreviewCallback(new Camera.PreviewCallback() {
-            @Override
-            public void onPreviewFrame(byte[] data, Camera camera) {
-                isPreviewActive = true;
-                Log.i("Action","Started preview!");
+
+        @Override
+        public void startPreview() {
+            c.startPreview();
+        }
+
+        @Override
+        public void setOneShotPreviewCallback(final MainActivitySkeleton.PreviewCallback action) {
+            c.setOneShotPreviewCallback(new Camera.PreviewCallback() {
+                @Override
+                public void onPreviewFrame(byte[] data, Camera camera) {
+                    action.onPreviewFrame(data);
+                }
+            });
+        }
+
+        private int getActivityOrientation() {
+            switch (getWindowManager().getDefaultDisplay()
+                    .getRotation()) {
+                case Surface.ROTATION_0:
+                    return 0;
+                case Surface.ROTATION_90:
+                    return 90;
+                case Surface.ROTATION_180:
+                    return 180;
+                case Surface.ROTATION_270:
+                    return 270;
             }
-        });
-        camera.startPreview();
-
-    }
-    private boolean safeCameraOpen(int id) {
-        try {
-            stopPreviewAndFreeCamera();
-            camera = Camera.open(id);
-            if (camera == null) return false;
-            camera.setDisplayOrientation(getCameraOrientation());
-            camera.setPreviewDisplay(mHolder);
-
-            startPreview();
-            Log.i("Action","Created camera!");
-        } catch (Exception e) {
-            Log.e(getString(R.string.app_name), "failed to open Camera");
-            e.printStackTrace();
-            return false;
+            throw new RuntimeException("If you got here then something is terribly wrong!");
         }
 
-        return true;
-    }
-
-    private void startPreviewMode() {
-        if (camera == null)
-            safeCameraOpen(0);
-        else
-            startPreview();
-        Log.i("Action","Going to preview mode!");
-        mTextView.setVisibility(View.INVISIBLE);
-    }
-
-    private void startPhotoMode() {
-        if (camera == null)
-            throw new RuntimeException("You shouldn't get here!");
-        Log.i("Action","Going to photo mode!");
-        stopPreview();
-        if (Math.random() > 0.5) {
-            Log.i("Cat", "No cat!");
-            mTextView.setText("Nie ma kota");
-        } else {
-            Log.i("Cat", "Is cat!");
-            mTextView.setText("Jest kot");
+        private int getCameraOrientation() {
+            int activityOrient = getActivityOrientation();
+            Camera.CameraInfo cameraInfo = new Camera.CameraInfo();
+            Camera.getCameraInfo(0, cameraInfo);
+            if (cameraInfo.facing == Camera.CameraInfo.CAMERA_FACING_FRONT) {
+                return (360 - (cameraInfo.orientation + activityOrient) % 360) % 360;  // compensate the mirror
+            } else {  // back-facing
+                return (cameraInfo.orientation - activityOrient + 360) % 360;
+            }
         }
-        mTextView.setVisibility(View.VISIBLE);
+
+        @Override
+        public void init() throws IOException {
+            c.setDisplayOrientation(getCameraOrientation());
+            c.setPreviewDisplay(mHolder);
+        }
+
+        @Override
+        public void setPreviewSize(int width, int height) {
+            c.getParameters().setPreviewSize(width, height);
+        }
     }
+
+    static class MainTextView implements MainActivitySkeleton.TextView {
+
+        final TextView tv;
+
+        MainTextView(TextView tv) {
+            this.tv = tv;
+        }
+
+        @Override
+        public void setText(String txt) {
+            tv.setText(txt);
+        }
+
+        @Override
+        public void setVisibility(int v) {
+            tv.setVisibility(v);
+        }
+    }
+
+    static class MainSurfaceView implements MainActivitySkeleton.SurfaceView {
+
+        final SurfaceView sv;
+
+        MainSurfaceView(SurfaceView sv) {
+            this.sv = sv;
+        }
+
+        @Override
+        public int getWidth() {
+            return sv.getWidth();
+        }
+
+        @Override
+        public int getHeight() {
+            return sv.getHeight();
+        }
+    }
+
+    class MainImpl implements MainActivitySkeleton.Impl {
+
+        @Override
+        public MainActivitySkeleton.CameraSkeleton cameraOpen(int id) {
+            Camera c = Camera.open(id);
+            if (c == null) return null;
+            return new MainCamera(c);
+        }
+
+        @Override
+        public int invisible() {
+            return View.INVISIBLE;
+        }
+
+        @Override
+        public MainActivitySkeleton.SurfaceView findSurfaceView() {
+            return new MainSurfaceView((SurfaceView) findViewById(R.id.surfaceView));
+        }
+
+        @Override
+        public MainActivitySkeleton.TextView findTextView() {
+            return new MainTextView((TextView) findViewById(R.id.textView));
+        }
+
+        @Override
+        public int visible() {
+            return View.VISIBLE;
+        }
+
+        @Override
+        public void safeCameraOpenDelayed(int id) {
+            new Handler().postDelayed(new Runnable() {
+                public void run() {
+                    skeleton.safeCameraOpen(0);
+                }
+            }, 100);
+        }
+    }
+
+    static class MainLog implements MainActivitySkeleton.Log {
+        @Override
+        public void i(String message) {
+            Log.i("Action", message);
+        }
+
+        @Override
+        public void e(String error) {
+            Log.e("Action", error);
+        }
+    }
+
+    private final MainImpl impl = new MainImpl();
+    private final MainActivitySkeleton skeleton = new MainActivitySkeleton(new MainLog(), impl);
+
+    private SurfaceHolder mHolder;
 
     private BottomNavigationView.OnNavigationItemSelectedListener mOnNavigationItemSelectedListener
             = new BottomNavigationView.OnNavigationItemSelectedListener() {
@@ -141,12 +195,7 @@ public class MainActivity extends AppCompatActivity implements SurfaceHolder.Cal
                 case R.id.navigation_home:
                     return true;
                 case R.id.take_photo:
-                    Log.i("Action","Taking photo!");
-                    if (!isPreviewActive) {
-                        startPreviewMode();
-                    } else {
-                        startPhotoMode();
-                    }
+                    skeleton.takePhoto();
                     return true;
                 case R.id.navigation_notifications:
                     return true;
@@ -156,23 +205,34 @@ public class MainActivity extends AppCompatActivity implements SurfaceHolder.Cal
     };
 
     @Override
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        if (grantResults.length > 0
+                && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+            skeleton.permissionGranted();
+        } else {
+            finish();
+        }
+    }
+
+    @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-
-        mSurfaceView = (SurfaceView) findViewById(R.id.surfaceView);
-        mTextView = (TextView) findViewById(R.id.textView);
-        mHolder = mSurfaceView.getHolder();
+        skeleton.onCreate();
+        mHolder = ((MainSurfaceView)skeleton.getSurfaceView()).sv.getHolder();
         mHolder.addCallback(this);
-//        mHolder.setType(SurfaceHolder.SURFACE_TYPE_PUSH_BUFFERS);
 
-        new Handler().postDelayed(new Runnable() {
-            public void run() {
-                safeCameraOpen(0);
-            }
-        }, 100);
-        BottomNavigationView navigation = (BottomNavigationView) findViewById(R.id.navigation);
+        BottomNavigationView navigation = findViewById(R.id.navigation);
         navigation.setOnNavigationItemSelectedListener(mOnNavigationItemSelectedListener);
+
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA)
+                != PackageManager.PERMISSION_GRANTED) {
+            ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.CAMERA},1);
+        }else{
+            skeleton.permissionGranted();
+        }
+
     }
 
     @Override
@@ -182,33 +242,22 @@ public class MainActivity extends AppCompatActivity implements SurfaceHolder.Cal
 
     @Override
     public void surfaceCreated(SurfaceHolder holder) {
-
     }
 
     @Override
     public void surfaceChanged(SurfaceHolder holder, int format, int width, int height) {
-        if (camera != null) {
-            Log.i("Action","Changed surface!");
-            camera.getParameters().setPreviewSize(mSurfaceView.getWidth(), mSurfaceView.getHeight());
-            // Important: Call startPreview() to start updating the preview surface.
-            // Preview must be started before you can take a picture.
-            startPreview();
-        }
-
+        skeleton.surfaceChanged();
     }
 
     @Override
     public void surfaceDestroyed(SurfaceHolder holder) {
-        if (camera != null) {
-            // Call stopPreview() to stop updating the preview surface.
-            stopPreview();
-        }
+        skeleton.surfaceDestroyed();
     }
 
     @Override
     protected void onDestroy() {
         super.onDestroy();
-        stopPreviewAndFreeCamera();
+        skeleton.onDestroy();
     }
 
 
