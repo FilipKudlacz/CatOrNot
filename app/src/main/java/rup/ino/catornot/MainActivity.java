@@ -45,6 +45,11 @@ public class MainActivity extends AppCompatActivity implements SurfaceHolder.Cal
         }
 
         @Override
+        public void reconnect() throws IOException {
+            c.reconnect();
+        }
+
+        @Override
         public void setOneShotPreviewCallback(final MainActivitySkeleton.PreviewCallback action) {
             c.setOneShotPreviewCallback(new Camera.PreviewCallback() {
                 @Override
@@ -81,10 +86,17 @@ public class MainActivity extends AppCompatActivity implements SurfaceHolder.Cal
         }
 
         @Override
-        public void init() throws IOException {
+        public void setDisplayOrientation() throws IOException {
             c.setDisplayOrientation(getCameraOrientation());
-            c.setPreviewDisplay(mHolder);
+
         }
+
+        @Override
+        public void setPreviewDisplay(MainActivitySkeleton.SurfaceHolder holder) throws IOException {
+            c.setPreviewDisplay(((MainSurfaceHolder) holder).h);
+        }
+
+
 
         @Override
         public void setPreviewSize(int width, int height) {
@@ -111,7 +123,26 @@ public class MainActivity extends AppCompatActivity implements SurfaceHolder.Cal
         }
     }
 
-    static class MainSurfaceView implements MainActivitySkeleton.SurfaceView {
+    class MainSurfaceHolder implements MainActivitySkeleton.SurfaceHolder {
+
+        private final SurfaceHolder h;
+
+        public MainSurfaceHolder(SurfaceHolder holder) {
+            h = holder;
+        }
+
+        @Override
+        public void addCallback() {
+            h.addCallback(MainActivity.this);
+        }
+
+        @Override
+        public void removeCallback() {
+            h.removeCallback(MainActivity.this);
+        }
+    }
+
+    class MainSurfaceView implements MainActivitySkeleton.SurfaceView {
 
         final SurfaceView sv;
 
@@ -128,7 +159,13 @@ public class MainActivity extends AppCompatActivity implements SurfaceHolder.Cal
         public int getHeight() {
             return sv.getHeight();
         }
+
+        @Override
+        public MainActivitySkeleton.SurfaceHolder getHolder() {
+            return new MainSurfaceHolder(sv.getHolder());
+        }
     }
+
 
     class MainImpl implements MainActivitySkeleton.Impl {
 
@@ -158,14 +195,25 @@ public class MainActivity extends AppCompatActivity implements SurfaceHolder.Cal
         public int visible() {
             return View.VISIBLE;
         }
+        @Override
+        public void postDelayed(Runnable runnable, long delayMilis) {
+            new Handler().postDelayed(runnable, delayMilis);
+        }
 
         @Override
-        public void safeCameraOpenDelayed(int id) {
-            new Handler().postDelayed(new Runnable() {
-                public void run() {
-                    skeleton.safeCameraOpen(0);
-                }
-            }, 100);
+        public void checkPermissions() {
+            if (ContextCompat.checkSelfPermission(MainActivity.this, Manifest.permission.CAMERA)
+                    != PackageManager.PERMISSION_GRANTED) {
+                ActivityCompat.requestPermissions(MainActivity.this, new String[]{Manifest.permission.CAMERA}, 1);
+            } else {
+                skeleton.permissionGranted();
+            }
+        }
+
+        @Override
+        public void attachCallbacks() {
+            BottomNavigationView navigation = findViewById(R.id.navigation);
+            navigation.setOnNavigationItemSelectedListener(mOnNavigationItemSelectedListener);
         }
     }
 
@@ -184,7 +232,7 @@ public class MainActivity extends AppCompatActivity implements SurfaceHolder.Cal
     private final MainImpl impl = new MainImpl();
     private final MainActivitySkeleton skeleton = new MainActivitySkeleton(new MainLog(), impl);
 
-    private SurfaceHolder mHolder;
+
 
     private BottomNavigationView.OnNavigationItemSelectedListener mOnNavigationItemSelectedListener
             = new BottomNavigationView.OnNavigationItemSelectedListener() {
@@ -220,28 +268,24 @@ public class MainActivity extends AppCompatActivity implements SurfaceHolder.Cal
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         skeleton.onCreate();
-        mHolder = ((MainSurfaceView)skeleton.getSurfaceView()).sv.getHolder();
-        mHolder.addCallback(this);
-
-        BottomNavigationView navigation = findViewById(R.id.navigation);
-        navigation.setOnNavigationItemSelectedListener(mOnNavigationItemSelectedListener);
-
-        if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA)
-                != PackageManager.PERMISSION_GRANTED) {
-            ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.CAMERA},1);
-        }else{
-            skeleton.permissionGranted();
-        }
 
     }
 
     @Override
     protected void onResume() {
         super.onResume();
+        skeleton.onResume();
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        skeleton.onPause();
     }
 
     @Override
     public void surfaceCreated(SurfaceHolder holder) {
+        skeleton.surfaceCreated();
     }
 
     @Override
@@ -252,6 +296,12 @@ public class MainActivity extends AppCompatActivity implements SurfaceHolder.Cal
     @Override
     public void surfaceDestroyed(SurfaceHolder holder) {
         skeleton.surfaceDestroyed();
+    }
+
+    @Override
+    protected void onStop() {
+        super.onStop();
+        skeleton.onStop();
     }
 
     @Override

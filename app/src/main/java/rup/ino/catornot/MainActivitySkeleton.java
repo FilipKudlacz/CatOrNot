@@ -5,10 +5,6 @@ import java.io.IOException;
 
 public class MainActivitySkeleton {
 
-    public void permissionGranted() {
-        impl.safeCameraOpenDelayed(0);
-    }
-
     public interface PreviewCallback {
         public void onPreviewFrame(byte[] data);
     }
@@ -20,9 +16,13 @@ public class MainActivitySkeleton {
 
         void startPreview();
 
+        void reconnect() throws IOException;
+
         void setOneShotPreviewCallback(PreviewCallback action);
 
-        void init() throws IOException;
+        void setDisplayOrientation() throws IOException;
+
+        void setPreviewDisplay(SurfaceHolder holder) throws IOException;
 
         void setPreviewSize(int width, int height);
     }
@@ -38,13 +38,23 @@ public class MainActivitySkeleton {
 
         int invisible();
 
+        /*@
+         ensures \result != null;
+         @*/
         SurfaceView findSurfaceView();
 
+        /*@
+         ensures \result != null;
+         @*/
         TextView findTextView();
 
         int visible();
 
-        void safeCameraOpenDelayed(int id);
+        void postDelayed(Runnable runnable, long delayMilis);
+
+        void checkPermissions();
+
+        void attachCallbacks();
     }
 
     public interface TextView {
@@ -59,6 +69,8 @@ public class MainActivitySkeleton {
         int getWidth();
 
         int getHeight();
+
+        SurfaceHolder getHolder();
     }
 
     public TextView getTextView() {
@@ -69,132 +81,194 @@ public class MainActivitySkeleton {
         return mSurfaceView;
     }
 
-    private TextView mTextView;
-    private SurfaceView mSurfaceView;
-    private final Log log;
-    private final Impl impl;
-    private CameraSkeleton camera;
-    private boolean isPreviewActive = false;
+    public interface SurfaceHolder{
 
-    public MainActivitySkeleton(Log log, Impl impl) {
+        void addCallback();
+
+        void removeCallback();
+    }
+
+    private /*@ spec_public @*/ TextView mTextView;
+    private /*@ spec_public @*/ SurfaceView mSurfaceView;
+    private SurfaceHolder mHolder;
+    private /*@ non_null@*/ final Log log;
+    private /*@ non_null spec_public @*/ final Impl impl;
+    private /*@ spec_public @*/ CameraSkeleton camera;
+    private /*@ spec_public @*/ boolean isPreviewActive = true;
+    private /*@ spec_public @*/ boolean isCat = false;
+
+    private void nextRandomCat(){
+        log.i("nextRandomCat!");
+        isCat = Math.random() > 0.5;
+    }
+
+
+    public MainActivitySkeleton(/*@ non_null @*/ Log log, /*@ non_null @*/ Impl impl) {
         this.log = log;
         this.impl = impl;
     }
 
-    public void stopPreview() {
-        if (camera != null)
+    /*@
+     ensures camera != null;
+     @*/
+    private void ensureEverythingWorks() {
+        log.i("ensureEverythingWorks!");
+        impl.checkPermissions();
+    }
+
+    public void permissionGranted() {
+        log.i("permissionGranted");
+        if (mSurfaceView == null)
+            mSurfaceView = impl.findSurfaceView();
+        if (mTextView == null)
+            mTextView = impl.findTextView();
+        impl.attachCallbacks();
+        if (mHolder == null)
+            mHolder = mSurfaceView.getHolder();
+        mHolder.addCallback();
+
+        isPreviewActive = true;
+        if(camera==null) {
+            impl.postDelayed(new Runnable() {
+                @Override
+                public void run() {
+                    try {
+                        //@assert camera == null;
+                        camera = impl.cameraOpen(0);
+                        log.i("created camera!");
+                        camera.setDisplayOrientation();
+                        camera.setPreviewDisplay(mHolder);
+
+                        updateMode();
+                    } catch (Exception e) {
+                        log.e("failed to open Camera");
+                        e.printStackTrace();
+                    }
+                }
+            },100);
+        }else{
+            updateMode();
+        }
+
+    }
+
+    /*@
+     ensures camera != null;
+     @*/
+    private void ensureEverythingDestroyed() {
+        log.i("ensureEverythingDestroyed!");
+        if(camera!=null){
             camera.stopPreview();
-        isPreviewActive = false;
-        log.i("Stopped preview!");
-    }
-
-    /**
-     * When this function returns, mCamera will be null.
-     */
-    private void stopPreviewAndFreeCamera() {
-
-        if (camera != null) {
-            // Call stopPreview() to stop updating the preview surface.
-            stopPreview();
-
-            // Important: Call release() to release the camera for use by other
-            // applications. Applications should release the camera immediately
-            // during onPause() and re-open() it during onResume()).
             camera.release();
-
             camera = null;
-            log.i("Freed preview!");
+            log.i("camera = null!");
         }
+        if(mHolder!=null){
+            mHolder.removeCallback();
+            mHolder = null;
+            log.i("mHolder = null!");
+        }
+        isPreviewActive = true;
     }
 
-    private void startPreview() {
-        if (camera == null) throw new RuntimeException("You should not be here!");
-        camera.setOneShotPreviewCallback(new PreviewCallback() {
-            @Override
-            public void onPreviewFrame(byte[] data) {
-                isPreviewActive = true;
-                log.i("Started preview!");
+    /*@
+     requires camera != null;
+     requires mTextView != null;
+     @*/
+    private void updateMode() {
+        log.i("updateMode!");
+        if(isPreviewActive){
+            log.i("startPreviewMode");
+            camera.setOneShotPreviewCallback(new PreviewCallback() {
+                @Override
+                public void onPreviewFrame(byte[] data) {
+                    isPreviewActive = true;
+                    log.i("Started preview!");
+                }
+            });
+            camera.startPreview();
+            mTextView.setVisibility(impl.invisible());
+        }else{
+            log.i("startPhotoMode");
+            camera.stopPreview();
+            if (isCat) {
+                log.i("Is cat!");
+                mTextView.setText("Jest kot");
+            } else {
+                log.i("No cat!");
+                mTextView.setText("Nie ma kota");
             }
-        });
-        camera.startPreview();
-
-    }
-
-    public boolean safeCameraOpen(int id) {
-        try {
-            stopPreviewAndFreeCamera();
-            camera = impl.cameraOpen(id);
-            if (camera == null) return false;
-            camera.init();
-
-            startPreview();
-            log.i("Created camera!");
-        } catch (Exception e) {
-            log.e("failed to open Camera");
-            e.printStackTrace();
-            return false;
+            mTextView.setVisibility(impl.visible());
         }
 
-        return true;
     }
 
-    private void startPreviewMode() {
-        if (camera == null)
-            safeCameraOpen(0);
-        else
-            startPreview();
-        log.i("Going to preview mode!");
-        mTextView.setVisibility(impl.invisible());
-    }
 
-    private void startPhotoMode() {
-        if (camera == null)
-            throw new RuntimeException("You shouldn't get here!");
-        log.i("Going to photo mode!");
-        stopPreview();
-        if (Math.random() > 0.5) {
-            log.i("No cat!");
-            mTextView.setText("Nie ma kota");
-        } else {
-            log.i("Is cat!");
-            mTextView.setText("Jest kot");
-        }
-        mTextView.setVisibility(impl.visible());
-    }
 
     public void takePhoto() {
-        log.i("Taking photo!");
-        if (!isPreviewActive) {
-            startPreviewMode();
-        } else {
-            startPhotoMode();
+        log.i("takePhoto");
+        isPreviewActive = !isPreviewActive;
+        if(!isPreviewActive){
+            nextRandomCat();
         }
-    }
-
-    public void onCreate() {
-
-        mSurfaceView = impl.findSurfaceView();
-        mTextView = impl.findTextView();
-
+        updateMode();
     }
 
 
+
+
+    /*@
+    requires mSurfaceView != null;
+    @*/
     public void surfaceChanged() {
+        log.i("surfaceChanged");
         if (camera != null) {
             log.i("Changed surface!");
             camera.setPreviewSize(mSurfaceView.getWidth(), mSurfaceView.getHeight());
-            startPreview();
+            updateMode();
         }
 
     }
 
     public void surfaceDestroyed() {
+        log.i("surfaceDestroyed");
         if (camera != null) {
-            stopPreview();
+            camera.stopPreview();
         }
     }
 
     public void onDestroy() {
-        stopPreviewAndFreeCamera();
+        log.i("onDestroy");
+        ensureEverythingDestroyed();
     }
+
+    /*@
+    requires impl != null;
+    ensures mSurfaceView != null;
+    ensures mTextView != null;
+    @*/
+    public void onCreate() {
+        log.i("onCreate");
+        ensureEverythingWorks();
+    }
+
+    public void onStop() {
+        log.i("onStop");
+        ensureEverythingDestroyed();
+    }
+
+    public void surfaceCreated() {
+        log.i("surfaceCreated");
+    }
+
+    public void onPause() {
+        log.i("onPause");
+        ensureEverythingDestroyed();
+    }
+
+    public void onResume() {
+        log.i("onResume");
+        ensureEverythingWorks();
+    }
+
 }
