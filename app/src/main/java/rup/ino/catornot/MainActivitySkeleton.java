@@ -48,13 +48,19 @@ public class MainActivitySkeleton {
          @*/
         TextView findTextView();
 
+        ProgressBar findProgressBar();
+
         int visible();
 
-        void postDelayed(Runnable runnable, long delayMilis);
+        Handler getHandler();
 
         void checkPermissions();
 
         void attachCallbacks();
+
+        void showDialog(String s);
+
+        void sleep(long milis);
     }
 
     public interface TextView {
@@ -88,12 +94,31 @@ public class MainActivitySkeleton {
         void removeCallback();
     }
 
-    private /*@ spec_public @*/ TextView mTextView;
-    private /*@ spec_public @*/ SurfaceView mSurfaceView;
+    public interface ProgressBar {
+
+        void setVisibility(int v);
+
+        void setProgress(int progress);
+
+        int getMax();
+
+        int getProgress();
+
+        void post(Runnable runnable);
+    }
+
+    public interface Handler {
+        void post(Runnable runnable);
+
+        void postDelayed(Runnable runnable, long delayMilis);
+    }
+    private /*@ spec_public nullable @*/ TextView mTextView;
+    private /*@ spec_public nullable @*/ SurfaceView mSurfaceView;
+    private /*@ spec_public nullable @*/ ProgressBar mProgressBar;
     private SurfaceHolder mHolder;
     private /*@ non_null@*/ final Log log;
     private /*@ non_null spec_public @*/ final Impl impl;
-    private /*@ spec_public @*/ CameraSkeleton camera;
+    private /*@ spec_public nullable @*/ CameraSkeleton camera;
     private /*@ spec_public @*/ boolean isPreviewActive = true;
     private /*@ spec_public @*/ boolean isCat = false;
 
@@ -122,6 +147,8 @@ public class MainActivitySkeleton {
             mSurfaceView = impl.findSurfaceView();
         if (mTextView == null)
             mTextView = impl.findTextView();
+        if(mProgressBar == null)
+            mProgressBar = impl.findProgressBar();
         impl.attachCallbacks();
         if (mHolder == null)
             mHolder = mSurfaceView.getHolder();
@@ -129,7 +156,7 @@ public class MainActivitySkeleton {
 
         isPreviewActive = true;
         if(camera==null) {
-            impl.postDelayed(new Runnable() {
+            impl.getHandler().postDelayed(new Runnable() {
                 @Override
                 public void run() {
                     try {
@@ -191,14 +218,42 @@ public class MainActivitySkeleton {
         }else{
             log.i("startPhotoMode");
             camera.stopPreview();
-            if (isCat) {
-                log.i("Is cat!");
-                mTextView.setText("Jest kot");
-            } else {
-                log.i("No cat!");
-                mTextView.setText("Nie ma kota");
-            }
-            mTextView.setVisibility(impl.visible());
+            mProgressBar.setProgress(0);
+            mProgressBar.setVisibility(impl.visible());
+            final Handler handler = impl.getHandler();
+            Thread t = new Thread(new Runnable() {
+                @Override
+                public void run() {
+                    for(float i=0;i<=1;i+=0.03){
+                        impl.sleep((long)(Math.random()*100));
+                        log.i(""+i);
+                        final int progress = (int)(mProgressBar.getMax()*i);
+                        handler.post(new Runnable() {
+                            @Override
+                            public void run() {
+                                mProgressBar.setProgress(progress);
+                            }
+                        });
+
+                    }
+                    handler.post(new Runnable() {
+                        @Override
+                        public void run() {
+                            mProgressBar.setVisibility(impl.invisible());
+                            if (isCat) {
+                                log.i("Is cat!");
+                                mTextView.setText("Jest kot");
+                            } else {
+                                log.i("No cat!");
+                                mTextView.setText("Nie ma kota");
+                            }
+                            mTextView.setVisibility(impl.visible());
+                        }
+                    });
+                }
+            });
+            t.start();
+
         }
 
     }
@@ -242,14 +297,12 @@ public class MainActivitySkeleton {
         ensureEverythingDestroyed();
     }
 
-    /*@
-    requires impl != null;
-    ensures mSurfaceView != null;
-    ensures mTextView != null;
-    @*/
+
     public void onCreate() {
         log.i("onCreate");
         ensureEverythingWorks();
+        impl.showDialog("Algorytmy mogą nie działać poprawnie " +
+                "jeżeli na zdjęciu nie ma żadnego zwierzęcia");
     }
 
     public void onStop() {
@@ -270,5 +323,7 @@ public class MainActivitySkeleton {
         log.i("onResume");
         ensureEverythingWorks();
     }
+
+
 
 }

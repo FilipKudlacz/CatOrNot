@@ -1,6 +1,7 @@
 package rup.ino.catornot;
 
 import android.Manifest;
+import android.app.AlertDialog;
 import android.content.pm.PackageManager;
 import android.hardware.Camera;
 import android.os.Bundle;
@@ -16,6 +17,7 @@ import android.view.Surface;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
 import android.view.View;
+import android.widget.ProgressBar;
 import android.widget.TextView;
 
 import java.io.IOException;
@@ -97,7 +99,6 @@ public class MainActivity extends AppCompatActivity implements SurfaceHolder.Cal
         }
 
 
-
         @Override
         public void setPreviewSize(int width, int height) {
             c.getParameters().setPreviewSize(width, height);
@@ -166,6 +167,60 @@ public class MainActivity extends AppCompatActivity implements SurfaceHolder.Cal
         }
     }
 
+    class MainProgressBar implements MainActivitySkeleton.ProgressBar {
+        private final ProgressBar pb;
+
+        MainProgressBar(ProgressBar progressBar) {
+            pb = progressBar;
+
+        }
+
+        @Override
+        public void setVisibility(int v) {
+            pb.setVisibility(v);
+
+        }
+
+        @Override
+        public void setProgress(int progress) {
+            pb.setProgress(progress);
+        }
+
+        @Override
+        public int getMax() {
+            return pb.getMax();
+        }
+
+        @Override
+        public int getProgress() {
+            return pb.getProgress();
+        }
+
+        @Override
+        public void post(Runnable runnable) {
+            pb.post(runnable);
+        }
+
+    }
+
+    class MainHandler implements MainActivitySkeleton.Handler {
+        private final Handler h;
+
+        MainHandler(Handler handler) {
+            h = handler;
+
+        }
+
+        @Override
+        public void post(Runnable runnable) {
+            h.post(runnable);
+        }
+
+        @Override
+        public void postDelayed(Runnable runnable, long delayMilis) {
+            h.postDelayed(runnable, delayMilis);
+        }
+    }
 
     class MainImpl implements MainActivitySkeleton.Impl {
 
@@ -192,12 +247,18 @@ public class MainActivity extends AppCompatActivity implements SurfaceHolder.Cal
         }
 
         @Override
+        public MainActivitySkeleton.ProgressBar findProgressBar() {
+            return new MainProgressBar((ProgressBar) findViewById(R.id.progressBar));
+        }
+
+        @Override
         public int visible() {
             return View.VISIBLE;
         }
+
         @Override
-        public void postDelayed(Runnable runnable, long delayMilis) {
-            new Handler().postDelayed(runnable, delayMilis);
+        public MainActivitySkeleton.Handler getHandler() {
+            return new MainHandler(new Handler());
         }
 
         @Override
@@ -215,6 +276,22 @@ public class MainActivity extends AppCompatActivity implements SurfaceHolder.Cal
             BottomNavigationView navigation = findViewById(R.id.navigation);
             navigation.setOnNavigationItemSelectedListener(mOnNavigationItemSelectedListener);
         }
+
+        @Override
+        public void showDialog(String s) {
+            AlertDialog.Builder builder = new AlertDialog.Builder(MainActivity.this);
+            builder.setMessage(s).setNeutralButton("OK", null);
+            builder.create().show();
+        }
+
+        @Override
+        public void sleep(long milis) {
+            try {
+                Thread.sleep(milis);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        }
     }
 
     static class MainLog implements MainActivitySkeleton.Log {
@@ -231,7 +308,6 @@ public class MainActivity extends AppCompatActivity implements SurfaceHolder.Cal
 
     private final MainImpl impl = new MainImpl();
     private final MainActivitySkeleton skeleton = new MainActivitySkeleton(new MainLog(), impl);
-
 
 
     private BottomNavigationView.OnNavigationItemSelectedListener mOnNavigationItemSelectedListener
