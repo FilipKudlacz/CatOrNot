@@ -29,7 +29,7 @@ public class MainActivitySkeleton {
         //@ensures released == true;
         void release();
 
-        //@assignable released;
+        //@assignable previewed;
         //@requires released == false;
         //@ensures previewed == true;
         void startPreview();
@@ -152,13 +152,10 @@ public class MainActivitySkeleton {
         void setProgress(int progress);
 
         //@assignable \nothing;
+        //@ensures \result <= 9999;
+        //@ensures \result > 0;
         int getMax();
 
-        //@assignable \nothing;
-        int getProgress();
-
-        //@assignable \nothing;
-        void post(Runnable runnable);
     }
 
     public static class Handler {
@@ -166,11 +163,13 @@ public class MainActivitySkeleton {
         //@requires s.camera == null;
         //@requires s.mTextView != null;
         //@requires s.mHolder != null;
+        //@requires s.mProgressBar != null;
         //@requires s.camera != null ==> s.camera.released == true;
         //@ensures s.camera.previewed == s.isPreviewActive;
+        //@ensures s.camera != null;
         //@assignable s.camera;
         //@assignable s.camera.previewed;
-        public void postDelayedCameraOpener(MainActivitySkeleton s, long delayMilis) {
+        public void postDelayedCameraOpener(/*@ non_null @*/ MainActivitySkeleton  s, long delayMilis) {
             //@assert s.mHolder != null;
             s.camera = s.impl.cameraOpen(0);
             //@assert s.camera != null;
@@ -192,7 +191,8 @@ public class MainActivitySkeleton {
 
         //@requires s.mTextView != null;
         //@requires s.mProgressBar != null;
-        public void postProgressFinalizer(MainActivitySkeleton s) {
+        //@assignable \nothing;
+        public void postProgressFinalizer(/*@ non_null @*/ MainActivitySkeleton  s) {
             s.mProgressBar.setVisibility(s.impl.invisible());
             if (s.isCat) {
                 s.log.i("Is cat!");
@@ -206,8 +206,42 @@ public class MainActivitySkeleton {
 
         //@requires s.mProgressBar != null;
         //@requires progress >= 0;
-        public void postProgressUpdater(MainActivitySkeleton s, int progress) {
+        //@assignable \nothing;
+        public void postProgressUpdater(/*@ non_null @*/ MainActivitySkeleton s, int progress) {
             s.mProgressBar.setProgress(progress);
+        }
+
+        //@requires s.mProgressBar != null;
+        //@requires s.mTextView != null;
+        //@assignable \nothing;
+        public void startProgressBarThread(/*@ non_null @*/ MainActivitySkeleton s) {
+            //@maintaining 0 < i && i <= 101;
+            for (int i = 1; i <= 100; i++) {
+                //@assert i > 0;
+                //@assert i <= 100;
+                final double rand = Math.random();
+                //@assert rand >= 0;
+                //@assert rand < 1;
+                final double sleepTime = rand * 100;
+                //@assert sleepTime >= 0;
+                //@assert sleepTime < 100;
+                s.impl.sleep((long) sleepTime);
+                s.log.i("" + i);
+                final int max = s.mProgressBar.getMax();
+                final int progress = (int) (max * i / 100);
+                //@assert i <= 100;
+                //@assert i > 0;
+                //@assert max > 0;
+                //@assert max <= 9999;
+                //@assert 0 <= max * i ;
+                //@assert max * i <= 999900;
+                //@assert max * i / 100 <= 9999;
+                //@assert max * 100 >= max * i;
+                //@assert progress >= 0;
+                postProgressUpdater(s, progress);
+
+            }
+            postProgressFinalizer(s);
         }
     }
 
@@ -275,7 +309,10 @@ public class MainActivitySkeleton {
         if (camera == null) {
             impl.getHandler().postDelayedCameraOpener(this, 100);
         } else {
+            //@assert camera != null;
+            //@assert camera.released == false;
             updateMode();
+            //@assert camera != null;
         }
 
     }
@@ -299,6 +336,7 @@ public class MainActivitySkeleton {
     }
 
     //@requires camera != null;
+    //@requires mProgressBar != null;
     //@requires mTextView != null;
     //@requires camera.released == false;
     //@ensures camera.previewed == isPreviewActive;
@@ -322,29 +360,21 @@ public class MainActivitySkeleton {
             mProgressBar.setProgress(0);
             mProgressBar.setVisibility(impl.visible());
             final Handler handler = impl.getHandler();
-            impl.startThread(new Runnable() {
-                @Override
-                public void run() {
-                    for (double i = 0; i <= 1; i += 0.03) {
-                        impl.sleep((long) (Math.random() * 100));
-                        log.i("" + i);
-                        final int progress = (int) (mProgressBar.getMax() * i);
-                        handler.postProgressUpdater(MainActivitySkeleton.this, progress);
-
-                    }
-                    handler.postProgressFinalizer(MainActivitySkeleton.this);
-                }
-            });
+            handler.startProgressBarThread(this);
 
         }
 
     }
 
+
     //@requires camera != null;
+    //@requires camera.released == false;
     //@requires mSurfaceView != null;
     //@requires mTextView != null;
+    //@requires mProgressBar != null;
     //@assignable isCat;
     //@assignable isPreviewActive;
+    //@assignable camera.previewed;
     //@ensures isPreviewActive != \old(isPreviewActive);
     public void takePhoto() {
         log.i("takePhoto");
@@ -356,9 +386,11 @@ public class MainActivitySkeleton {
     }
 
 
+    //@requires camera != null ==> mProgressBar != null;
     //@requires camera != null ==> mSurfaceView != null;
     //@requires camera != null ==> mTextView != null;
-    //@assignable \nothing;
+    //@requires camera != null ==> camera.released == false;
+    //@assignable camera.previewed;
     public void surfaceChanged() {
         log.i("surfaceChanged");
         if (camera != null) {

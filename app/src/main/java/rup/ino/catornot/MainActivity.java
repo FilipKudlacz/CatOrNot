@@ -191,21 +191,6 @@ public class MainActivity extends AppCompatActivity implements SurfaceHolder.Cal
             return pb.getMax();
         }
 
-        @Override
-        public int getProgress() {
-            return pb.getProgress();
-        }
-
-        @Override
-        public void post(final MainActivitySkeleton.Runnable runnable) {
-            pb.post(new Runnable() {
-                @Override
-                public void run() {
-                    runnable.run();
-                }
-            });
-        }
-
     }
 
     class MainHandler extends MainActivitySkeleton.Handler {
@@ -248,6 +233,15 @@ public class MainActivity extends AppCompatActivity implements SurfaceHolder.Cal
 
         }
 
+        @Override
+        public void startProgressBarThread(final MainActivitySkeleton s) {
+            new Thread(new Runnable() {
+                @Override
+                public void run() {
+                    MainHandler.super.startProgressBarThread(s);
+                }
+            }).start();
+        }
     }
 
     class MainImpl implements MainActivitySkeleton.Impl {
