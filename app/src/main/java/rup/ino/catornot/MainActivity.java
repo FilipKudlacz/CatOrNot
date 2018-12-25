@@ -197,13 +197,18 @@ public class MainActivity extends AppCompatActivity implements SurfaceHolder.Cal
         }
 
         @Override
-        public void post(Runnable runnable) {
-            pb.post(runnable);
+        public void post(final MainActivitySkeleton.Runnable runnable) {
+            pb.post(new Runnable() {
+                @Override
+                public void run() {
+                    runnable.run();
+                }
+            });
         }
 
     }
 
-    class MainHandler implements MainActivitySkeleton.Handler {
+    class MainHandler extends MainActivitySkeleton.Handler {
         private final Handler h;
 
         MainHandler(Handler handler) {
@@ -212,14 +217,37 @@ public class MainActivity extends AppCompatActivity implements SurfaceHolder.Cal
         }
 
         @Override
-        public void post(Runnable runnable) {
-            h.post(runnable);
+        public void postDelayedCameraOpener(final MainActivitySkeleton s, final long delayMilis) {
+
+            h.postDelayed(new Runnable() {
+                @Override
+                public void run() {
+                    MainHandler.super.postDelayedCameraOpener(s, delayMilis);
+                }
+            },delayMilis);
         }
 
         @Override
-        public void postDelayed(Runnable runnable, long delayMilis) {
-            h.postDelayed(runnable, delayMilis);
+        public void postProgressFinalizer(final MainActivitySkeleton s) {
+            h.post(new Runnable() {
+                @Override
+                public void run() {
+                    MainHandler.super.postProgressFinalizer(s);
+                }
+            });
         }
+
+        @Override
+        public void postProgressUpdater(final MainActivitySkeleton s, final int progress) {
+            h.post(new Runnable() {
+                @Override
+                public void run() {
+                    MainHandler.super.postProgressUpdater(s, progress);
+                }
+            });
+
+        }
+
     }
 
     class MainImpl implements MainActivitySkeleton.Impl {
@@ -291,6 +319,16 @@ public class MainActivity extends AppCompatActivity implements SurfaceHolder.Cal
             } catch (InterruptedException e) {
                 e.printStackTrace();
             }
+        }
+
+        @Override
+        public void startThread(final MainActivitySkeleton.Runnable runnable) {
+            new Thread(new Runnable() {
+                @Override
+                public void run() {
+                    runnable.run();
+                }
+            }).start();
         }
     }
 
