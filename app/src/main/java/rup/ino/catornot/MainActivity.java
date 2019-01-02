@@ -7,6 +7,7 @@ import android.hardware.Camera;
 import android.os.Bundle;
 import android.os.Handler;
 import android.support.annotation.NonNull;
+import android.support.design.internal.BottomNavigationItemView;
 import android.support.design.widget.BottomNavigationView;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
@@ -90,7 +91,6 @@ public class MainActivity extends AppCompatActivity implements SurfaceHolder.Cal
         @Override
         public void setDisplayOrientation() throws IOException {
             c.setDisplayOrientation(getCameraOrientation());
-
         }
 
         @Override
@@ -244,6 +244,23 @@ public class MainActivity extends AppCompatActivity implements SurfaceHolder.Cal
         }
     }
 
+    static class MainMenuItem implements MainActivitySkeleton.MenuItem{
+        private final BottomNavigationItemView i;
+        private MainMenuItem(BottomNavigationItemView item){
+            i = item;
+        }
+
+        @Override
+        public void setTakePhotoText() {
+//            i.getItemData().setTitle("Zrób zdjęcie");
+        }
+
+        @Override
+        public void setTakeNextPhotoText() {
+//            i.setTitle("Zrób kolejne zdjęcie");
+        }
+    }
+
     class MainImpl implements MainActivitySkeleton.Impl {
 
         @Override
@@ -266,6 +283,11 @@ public class MainActivity extends AppCompatActivity implements SurfaceHolder.Cal
         @Override
         public MainActivitySkeleton.TextView findTextView() {
             return new MainTextView((TextView) findViewById(R.id.textView));
+        }
+
+        @Override
+        public MainActivitySkeleton.MenuItem findTakePhotoButton() {
+            return new MainMenuItem((BottomNavigationItemView) findViewById(R.id.take_photo));
         }
 
         @Override

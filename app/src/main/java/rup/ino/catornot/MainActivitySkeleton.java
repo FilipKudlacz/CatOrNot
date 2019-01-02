@@ -80,6 +80,8 @@ public class MainActivitySkeleton {
         //@assignable \nothing;
         TextView findTextView();
 
+        MainActivitySkeleton.MenuItem findTakePhotoButton();
+
         //@assignable \nothing;
         //@ensures \result != null;
         ProgressBar findProgressBar();
@@ -105,6 +107,7 @@ public class MainActivitySkeleton {
 
         //@assignable \nothing;
         void startThread(Runnable runnable);
+
     }
 
     public interface TextView {
@@ -158,6 +161,17 @@ public class MainActivitySkeleton {
 
     }
 
+    public interface MenuItem {
+
+        //@public instance ghost boolean takePhotoText = false;
+
+        //@ensures takePhotoText == true;
+        void setTakePhotoText();
+
+        //@ensures takePhotoText == false;
+        void setTakeNextPhotoText();
+    }
+
     public static class Handler {
 
         //@requires s.camera == null;
@@ -191,6 +205,8 @@ public class MainActivitySkeleton {
 
         //@requires s.mTextView != null;
         //@requires s.mProgressBar != null;
+        //@requires s.mMenuItem != null;
+        //@ensures s.mMenuItem.takePhotoText == false;
         //@assignable \nothing;
         public void postProgressFinalizer(/*@ non_null @*/ MainActivitySkeleton  s) {
             s.mProgressBar.setVisibility(s.impl.invisible());
@@ -202,6 +218,7 @@ public class MainActivitySkeleton {
                 s.mTextView.setText("Nie ma kota");
             }
             s.mTextView.setVisibility(s.impl.visible());
+            s.mMenuItem.setTakeNextPhotoText();
         }
 
         //@requires s.mProgressBar != null;
@@ -247,6 +264,7 @@ public class MainActivitySkeleton {
 
 
     private /*@ spec_public nullable @*/ TextView mTextView;
+    private /*@ spec_public nullable @*/ MenuItem mMenuItem;
     private /*@ spec_public nullable @*/ SurfaceView mSurfaceView;
     private /*@ spec_public nullable @*/ ProgressBar mProgressBar;
     private /*@ spec_public nullable @*/ SurfaceHolder mHolder;
@@ -280,12 +298,14 @@ public class MainActivitySkeleton {
     //@ensures mTextView != null;
     //@ensures mHolder != null;
     //@ensures isPreviewActive == true;
+    //@ensures mMenuItem != null;
     //@assignable isPreviewActive;
     //@assignable mTextView;
     //@assignable mProgressBar;
     //@assignable mSurfaceView;
     //@assignable mHolder;
     //@assignable camera;
+    //@assignable mMenuItem;
     //@assignable camera.previewed;
     //@assignable mHolder.callbacksAttached;
     //@assignable impl.callbacksAttached;
@@ -300,6 +320,8 @@ public class MainActivitySkeleton {
             mTextView = impl.findTextView();
         if (mProgressBar == null)
             mProgressBar = impl.findProgressBar();
+        if (mMenuItem == null)
+            mMenuItem = impl.findTakePhotoButton();
         impl.attachCallbacks();
         if (mHolder == null)
             mHolder = mSurfaceView.getHolder();
@@ -354,6 +376,7 @@ public class MainActivitySkeleton {
             });
             camera.startPreview();
             mTextView.setVisibility(impl.invisible());
+            mMenuItem.setTakePhotoText();
         } else {
             log.i("startPhotoMode");
             camera.stopPreview();
