@@ -3,6 +3,7 @@ package rup.ino.catornot;
 import android.Manifest;
 import android.app.AlertDialog;
 import android.content.pm.PackageManager;
+import android.graphics.Color;
 import android.hardware.Camera;
 import android.os.Bundle;
 import android.os.Handler;
@@ -18,12 +19,17 @@ import android.view.Surface;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
 import android.view.View;
+import android.widget.Button;
+import android.widget.ImageButton;
+import android.widget.LinearLayout;
 import android.widget.ProgressBar;
 import android.widget.TextView;
 
 import java.io.IOException;
 
 public class MainActivity extends AppCompatActivity implements SurfaceHolder.Callback {
+
+    boolean isCameraOn = true;
 
     class MainCamera implements MainActivitySkeleton.CameraSkeleton {
         Camera c;
@@ -245,19 +251,19 @@ public class MainActivity extends AppCompatActivity implements SurfaceHolder.Cal
     }
 
     static class MainMenuItem implements MainActivitySkeleton.MenuItem{
-        private final BottomNavigationItemView i;
-        private MainMenuItem(BottomNavigationItemView item){
+        private final Button i;
+        private MainMenuItem(Button item){
             i = item;
         }
 
         @Override
         public void setTakePhotoText() {
-//            i.getItemData().setTitle("Zrób zdjęcie");
+//            i.setText("Zrób zdjęcie");
         }
 
         @Override
         public void setTakeNextPhotoText() {
-//            i.setTitle("Zrób kolejne zdjęcie");
+//            i.setText("Zrób kolejne zdjęcie");
         }
     }
 
@@ -287,7 +293,7 @@ public class MainActivity extends AppCompatActivity implements SurfaceHolder.Cal
 
         @Override
         public MainActivitySkeleton.MenuItem findTakePhotoButton() {
-            return new MainMenuItem((BottomNavigationItemView) findViewById(R.id.take_photo));
+            return new MainMenuItem((Button) findViewById(R.id.take_photo));
         }
 
         @Override
@@ -317,8 +323,6 @@ public class MainActivity extends AppCompatActivity implements SurfaceHolder.Cal
 
         @Override
         public void attachCallbacks() {
-            BottomNavigationView navigation = findViewById(R.id.navigation);
-            navigation.setOnNavigationItemSelectedListener(mOnNavigationItemSelectedListener);
         }
 
         @Override
@@ -391,6 +395,23 @@ public class MainActivity extends AppCompatActivity implements SurfaceHolder.Cal
         } else {
             finish();
         }
+    }
+
+    public void onClickTakePhoto(View view) {
+        LinearLayout layout = (LinearLayout) findViewById(R.id.linear);
+        ImageButton button = (ImageButton) findViewById(R.id.navigation);
+        if (isCameraOn == true) {
+            skeleton.takePhoto();
+            button.setImageResource(R.drawable.ic_refresh_black_24dp);
+            button.setBackgroundColor(Color.parseColor("#00cdf4"));
+            layout.setBackgroundColor(Color.parseColor("#009eba"));
+        }else{
+            skeleton.takePhoto();
+            button.setImageResource(R.drawable.ic_photo_camera_white_24dp);
+            button.setBackgroundColor(Color.parseColor("#696969"));
+            layout.setBackgroundColor(Color.parseColor("#696969"));
+        }
+        isCameraOn = !isCameraOn;
     }
 
     @Override
