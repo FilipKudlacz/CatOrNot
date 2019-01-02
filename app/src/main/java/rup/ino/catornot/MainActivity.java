@@ -370,13 +370,13 @@ public class MainActivity extends AppCompatActivity implements SurfaceHolder.Cal
         @Override
         public boolean onNavigationItemSelected(@NonNull MenuItem item) {
             switch (item.getItemId()) {
-                case R.id.navigation_home:
-                    return true;
+                //case R.id.navigation_home:
+                   //return true;
                 case R.id.take_photo:
                     skeleton.takePhoto();
                     return true;
-                case R.id.navigation_notifications:
-                    return true;
+                //case R.id.navigation_notifications:
+                    //return true;
             }
             return false;
         }
