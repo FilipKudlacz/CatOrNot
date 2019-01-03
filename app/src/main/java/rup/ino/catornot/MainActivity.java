@@ -5,6 +5,7 @@ import android.app.AlertDialog;
 import android.content.pm.PackageManager;
 import android.graphics.Color;
 import android.hardware.Camera;
+import android.media.Image;
 import android.os.Bundle;
 import android.os.Handler;
 import android.support.annotation.NonNull;
@@ -28,8 +29,6 @@ import android.widget.TextView;
 import java.io.IOException;
 
 public class MainActivity extends AppCompatActivity implements SurfaceHolder.Callback {
-
-    boolean isCameraOn = true;
 
     class MainCamera implements MainActivitySkeleton.CameraSkeleton {
         Camera c;
@@ -251,18 +250,28 @@ public class MainActivity extends AppCompatActivity implements SurfaceHolder.Cal
     }
 
     static class MainMenuItem implements MainActivitySkeleton.MenuItem{
-        private final Button i;
-        private MainMenuItem(Button item){
+        private final ImageButton i;
+        private final LinearLayout l;
+        private MainMenuItem(ImageButton item, LinearLayout layout){
             i = item;
+            l = layout;
         }
 
         @Override
         public void setTakePhotoText() {
+
+            i.setImageResource(R.drawable.ic_photo_camera_white_24dp);
+            i.setBackgroundColor(Color.parseColor("#696969"));
+            l.setBackgroundColor(Color.parseColor("#696969"));
 //            i.setText("Zrób zdjęcie");
         }
 
         @Override
         public void setTakeNextPhotoText() {
+
+            i.setImageResource(R.drawable.ic_refresh_black_24dp);
+            i.setBackgroundColor(Color.parseColor("#00cdf4"));
+            l.setBackgroundColor(Color.parseColor("#009eba"));
 //            i.setText("Zrób kolejne zdjęcie");
         }
     }
@@ -293,7 +302,7 @@ public class MainActivity extends AppCompatActivity implements SurfaceHolder.Cal
 
         @Override
         public MainActivitySkeleton.MenuItem findTakePhotoButton() {
-            return new MainMenuItem((Button) findViewById(R.id.take_photo));
+            return new MainMenuItem((ImageButton) findViewById(R.id.navigation), (LinearLayout) findViewById(R.id.linear));
         }
 
         @Override
@@ -367,25 +376,6 @@ public class MainActivity extends AppCompatActivity implements SurfaceHolder.Cal
     private final MainImpl impl = new MainImpl();
     private final MainActivitySkeleton skeleton = new MainActivitySkeleton(new MainLog(), impl);
 
-
-    private BottomNavigationView.OnNavigationItemSelectedListener mOnNavigationItemSelectedListener
-            = new BottomNavigationView.OnNavigationItemSelectedListener() {
-
-        @Override
-        public boolean onNavigationItemSelected(@NonNull MenuItem item) {
-            switch (item.getItemId()) {
-                //case R.id.navigation_home:
-                   //return true;
-                case R.id.take_photo:
-                    skeleton.takePhoto();
-                    return true;
-                //case R.id.navigation_notifications:
-                    //return true;
-            }
-            return false;
-        }
-    };
-
     @Override
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
@@ -398,20 +388,7 @@ public class MainActivity extends AppCompatActivity implements SurfaceHolder.Cal
     }
 
     public void onClickTakePhoto(View view) {
-        LinearLayout layout = (LinearLayout) findViewById(R.id.linear);
-        ImageButton button = (ImageButton) findViewById(R.id.navigation);
-        if (isCameraOn == true) {
             skeleton.takePhoto();
-            button.setImageResource(R.drawable.ic_refresh_black_24dp);
-            button.setBackgroundColor(Color.parseColor("#00cdf4"));
-            layout.setBackgroundColor(Color.parseColor("#009eba"));
-        }else{
-            skeleton.takePhoto();
-            button.setImageResource(R.drawable.ic_photo_camera_white_24dp);
-            button.setBackgroundColor(Color.parseColor("#696969"));
-            layout.setBackgroundColor(Color.parseColor("#696969"));
-        }
-        isCameraOn = !isCameraOn;
     }
 
     @Override
