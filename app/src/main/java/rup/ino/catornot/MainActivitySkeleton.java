@@ -462,7 +462,10 @@ public class MainActivitySkeleton {
     public void onCreate() {
         log.i("onCreate");
         ensureEverythingWorks();
-        impl.showDialog("należy zrobić zdjęcia tv, inaczej wynik może być nie zgodny z prawdą");
+        impl.showDialog("Aby zapewnić poprawne działanie apliakcji, " +
+                "należy wykonywać wyłącznie zdjęcia telewizora." +
+                " W przeciwnym wypadku wynik" +
+                " może być niezgodny z prawdą.");
     }
 
     //@requires camera != null ==> camera.released == false;
