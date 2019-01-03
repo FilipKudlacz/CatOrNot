@@ -462,8 +462,7 @@ public class MainActivitySkeleton {
     public void onCreate() {
         log.i("onCreate");
         ensureEverythingWorks();
-        impl.showDialog("Algorytmy mogą nie działać poprawnie " +
-                "jeżeli na zdjęciu nie ma żadnego zwierzęcia");
+        impl.showDialog("należy zrobić zdjęcia tv, inaczej wynik może być nie zgodny z prawdą");
     }
 
     //@requires camera != null ==> camera.released == false;
