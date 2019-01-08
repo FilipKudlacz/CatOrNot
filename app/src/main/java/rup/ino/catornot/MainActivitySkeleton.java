@@ -82,6 +82,7 @@ public class MainActivitySkeleton {
 
         //@ensures \result != null;
         //@ensures \result.takePhotoText == true;
+        //@ensures \result.enabled == true;
         //@assignable \nothing;
         MainActivitySkeleton.MenuItem findTakePhotoButton();
 
@@ -166,6 +167,7 @@ public class MainActivitySkeleton {
 
     public interface MenuItem {
 
+        //@public instance ghost boolean enabled = true;
         //@public instance ghost boolean takePhotoText = false;
 
         //@ensures takePhotoText == true;
@@ -175,6 +177,10 @@ public class MainActivitySkeleton {
         //@ensures takePhotoText == false;
         //@assignable takePhotoText;
         void setTakeNextPhotoText();
+
+        //@ensures enabled == t;
+        //@assignable enabled;
+        void setEnabled(boolean t);
     }
 
     public static class Handler {
@@ -214,8 +220,11 @@ public class MainActivitySkeleton {
         //@requires s.mTextView != null;
         //@requires s.mProgressBar != null;
         //@requires s.mMenuItem != null;
+        //@requires s.mMenuItem.enabled == false;
+        //@ensures s.mMenuItem.enabled == true;
         //@ensures s.mMenuItem.takePhotoText == false;
         //@assignable s.mMenuItem.takePhotoText;
+        //@assignable s.mMenuItem.enabled;
         public void postProgressFinalizer(/*@ non_null @*/ MainActivitySkeleton  s) {
             s.mProgressBar.setVisibility(s.impl.invisible());
             if (s.isCat) {
@@ -227,6 +236,7 @@ public class MainActivitySkeleton {
             }
             s.mTextView.setVisibility(s.impl.visible());
             s.mMenuItem.setTakeNextPhotoText();
+            s.mMenuItem.setEnabled(true);
         }
 
         //@requires s.mProgressBar != null;
@@ -239,8 +249,11 @@ public class MainActivitySkeleton {
         //@requires s.mProgressBar != null;
         //@requires s.mTextView != null;
         //@requires s.mMenuItem != null;
+        //@requires s.mMenuItem.enabled == false;
         //@ensures s.mMenuItem.takePhotoText == false;
+        //@ensures s.mMenuItem.enabled == true;
         //@assignable s.mMenuItem.takePhotoText;
+        //@assignable s.mMenuItem.enabled;
         public void startProgressBarThread(/*@ non_null @*/ MainActivitySkeleton s) {
             //@maintaining 0 < i && i <= 101;
             for (int i = 1; i <= 100; i++) {
@@ -377,8 +390,10 @@ public class MainActivitySkeleton {
     //@requires camera.released == false;
     //@ensures camera.previewed == isPreviewActive;
     //@ensures mMenuItem.takePhotoText == isPreviewActive;
+    //@ensures mMenuItem.enabled == true;
     //@assignable camera.previewed;
     //@assignable mMenuItem.takePhotoText;
+    //@assignable mMenuItem.enabled;
     private void updateMode() {
         log.i("updateMode!");
         if (isPreviewActive) {
@@ -399,7 +414,10 @@ public class MainActivitySkeleton {
             mProgressBar.setProgress(0);
             mProgressBar.setVisibility(impl.visible());
             final Handler handler = impl.getHandler();
+            mMenuItem.setEnabled(false);
+            //@assert mMenuItem.enabled == false;
             handler.startProgressBarThread(this);
+            //@assert mMenuItem.enabled == true;
 
         }
     }
@@ -410,10 +428,12 @@ public class MainActivitySkeleton {
     //@requires mTextView != null;
     //@requires mProgressBar != null;
     //@requires mMenuItem != null;
+    //@ensures mMenuItem.enabled == true;
     //@assignable isCat;
     //@assignable isPreviewActive;
     //@assignable camera.previewed;
     //@assignable mMenuItem.takePhotoText;
+    //@assignable mMenuItem.enabled;
     //@ensures isPreviewActive != \old(isPreviewActive);
     public void takePhoto() {
         log.i("takePhoto");
@@ -430,8 +450,10 @@ public class MainActivitySkeleton {
     //@requires camera != null ==> mTextView != null;
     //@requires camera != null ==> mMenuItem != null;
     //@requires camera != null ==> camera.released == false;
+    //@ensures mMenuItem.enabled == true;
     //@assignable camera.previewed;
     //@assignable mMenuItem.takePhotoText;
+    //@assignable mMenuItem.enabled;
     public void surfaceChanged() {
         log.i("surfaceChanged");
         if (camera != null) {

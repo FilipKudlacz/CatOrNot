@@ -5,22 +5,17 @@ import android.app.AlertDialog;
 import android.content.pm.PackageManager;
 import android.graphics.Color;
 import android.hardware.Camera;
-import android.media.Image;
 import android.os.Bundle;
 import android.os.Handler;
 import android.support.annotation.NonNull;
-import android.support.design.internal.BottomNavigationItemView;
-import android.support.design.widget.BottomNavigationView;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
-import android.view.MenuItem;
 import android.view.Surface;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
 import android.view.View;
-import android.widget.Button;
 import android.widget.ImageButton;
 import android.widget.LinearLayout;
 import android.widget.ProgressBar;
@@ -255,6 +250,7 @@ public class MainActivity extends AppCompatActivity implements SurfaceHolder.Cal
         private MainMenuItem(ImageButton item, LinearLayout layout){
             i = item;
             l = layout;
+
         }
 
         @Override
@@ -274,6 +270,12 @@ public class MainActivity extends AppCompatActivity implements SurfaceHolder.Cal
             l.setBackgroundColor(Color.parseColor("#009eba"));
 //            i.setText("Zrób kolejne zdjęcie");
         }
+
+        @Override
+        public void setEnabled(boolean t){
+            i.setEnabled(t);
+        }
+
     }
 
     class MainImpl implements MainActivitySkeleton.Impl {
