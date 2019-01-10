@@ -112,11 +112,13 @@ public class MainActivity extends AppCompatActivity implements SurfaceHolder.Cal
         @Override
         public void setTextNoCat() {
             tv.setText("Nie ma kota");
+            tv.setBackgroundColor(Color.parseColor("#F44336"));
         }
 
         @Override
         public void setTextIsCat() {
             tv.setText("Jest kot");
+            tv.setBackgroundColor(Color.parseColor("#8BC34A"));
         }
 
         MainTextView(TextView tv) {
