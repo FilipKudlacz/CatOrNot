@@ -109,14 +109,20 @@ public class MainActivity extends AppCompatActivity implements SurfaceHolder.Cal
 
         final TextView tv;
 
+        @Override
+        public void setTextNoCat() {
+            tv.setText("Nie ma kota");
+        }
+
+        @Override
+        public void setTextIsCat() {
+            tv.setText("Jest kot");
+        }
+
         MainTextView(TextView tv) {
             this.tv = tv;
         }
 
-        @Override
-        public void setText(String txt) {
-            tv.setText(txt);
-        }
 
         @Override
         public void setVisibility(int v) {

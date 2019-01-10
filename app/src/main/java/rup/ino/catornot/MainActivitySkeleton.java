@@ -118,7 +118,10 @@ public class MainActivitySkeleton {
     public interface TextView {
 
         //@assignable \nothing;
-        void setText(String txt);
+        void setTextNoCat();
+
+        //@assignable \nothing;
+        void setTextIsCat();
 
         //@assignable \nothing;
         void setVisibility(int invisible);
@@ -232,10 +235,10 @@ public class MainActivitySkeleton {
             s.mProgressBar.setVisibility(s.impl.invisible());
             if (s.isCat) {
                 s.log.i("Is cat!");
-                s.mTextView.setText("Jest kot");
+                s.mTextView.setTextIsCat();
             } else {
                 s.log.i("No cat!");
-                s.mTextView.setText("Nie ma kota");
+                s.mTextView.setTextNoCat();
             }
             s.mTextView.setVisibility(s.impl.visible());
             s.mMenuItem.setTakeNextPhotoText();
