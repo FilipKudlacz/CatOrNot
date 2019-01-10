@@ -323,16 +323,6 @@ public class MainActivity extends AppCompatActivity implements SurfaceHolder.Cal
         }
 
         @Override
-        public void checkPermissions() {
-            if (ContextCompat.checkSelfPermission(MainActivity.this, Manifest.permission.CAMERA)
-                    != PackageManager.PERMISSION_GRANTED) {
-                ActivityCompat.requestPermissions(MainActivity.this, new String[]{Manifest.permission.CAMERA}, 1);
-            } else {
-                skeleton.permissionGranted();
-            }
-        }
-
-        @Override
         public void attachCallbacks() {
         }
 
@@ -361,6 +351,21 @@ public class MainActivity extends AppCompatActivity implements SurfaceHolder.Cal
                 }
             }).start();
         }
+
+        @Override
+        public MainActivitySkeleton.PermissionHandler getPermissionHandler(MainActivitySkeleton skel) {
+            return new MainActivitySkeleton.PermissionHandler(skel){
+                @Override
+                void checkPermissions() {
+                    if (ContextCompat.checkSelfPermission(MainActivity.this, Manifest.permission.CAMERA)
+                            != PackageManager.PERMISSION_GRANTED) {
+                        ActivityCompat.requestPermissions(MainActivity.this, new String[]{Manifest.permission.CAMERA}, 1);
+                    } else {
+                        skeleton.permissionGranted();
+                    }
+                }
+            };
+        }
     }
 
     static class MainLog implements MainActivitySkeleton.Log {
@@ -377,6 +382,7 @@ public class MainActivity extends AppCompatActivity implements SurfaceHolder.Cal
 
     private final MainImpl impl = new MainImpl();
     private final MainActivitySkeleton skeleton = new MainActivitySkeleton(new MainLog(), impl);
+
 
     @Override
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {

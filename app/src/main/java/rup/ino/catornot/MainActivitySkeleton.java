@@ -96,9 +96,6 @@ public class MainActivitySkeleton {
         //@ensures \result != null;
         Handler getHandler();
 
-        //@assignable \nothing;
-        void checkPermissions();
-
         //@assignable callbacksAttached;
         //@ensures callbacksAttached == true;
         void attachCallbacks();
@@ -111,6 +108,10 @@ public class MainActivitySkeleton {
 
         //@assignable \nothing;
         void startThread(Runnable runnable);
+
+        //@assignable \nothing;
+        //@ensures \result != null;
+        PermissionHandler getPermissionHandler(MainActivitySkeleton skel);
 
     }
 
@@ -194,9 +195,11 @@ public class MainActivitySkeleton {
         //@ensures s.camera != null;
         //@requires s.mMenuItem != null;
         //@ensures s.mMenuItem.takePhotoText == s.isPreviewActive;
+        //@ensures s.mMenuItem.enabled == true;
         //@assignable s.camera;
         //@assignable s.camera.previewed;
         //@assignable s.mMenuItem.takePhotoText;
+        //@assignable s.mMenuItem.enabled;
         public void postDelayedCameraOpener(/*@ non_null @*/ MainActivitySkeleton  s, long delayMilis) {
             //@assert s.mHolder != null;
             s.camera = s.impl.cameraOpen(0);
@@ -286,6 +289,43 @@ public class MainActivitySkeleton {
     }
 
 
+    public static class PermissionHandler{
+
+        private final  /*@ spec_public @*/ MainActivitySkeleton skel;
+
+        public PermissionHandler(MainActivitySkeleton skel){
+            this.skel = skel;
+        }
+
+        //@requires skel.camera != null ==> skel.camera.released == false;
+        //@ensures skel.mSurfaceView != null;
+        //@ensures skel.mProgressBar != null;
+        //@ensures skel.mTextView != null;
+        //@ensures skel.mHolder != null;
+        //@ensures skel.isPreviewActive == true;
+        //@ensures skel.mMenuItem != null;
+        //@assignable skel.isPreviewActive;
+        //@assignable skel.mTextView;
+        //@assignable skel.mProgressBar;
+        //@assignable skel.mSurfaceView;
+        //@assignable skel.mHolder;
+        //@assignable skel.camera;
+        //@assignable skel.mMenuItem;
+        //@assignable skel.camera.previewed;
+        //@assignable skel.mHolder.callbacksAttached;
+        //@assignable skel.impl.callbacksAttached;
+        //@assignable skel.mMenuItem.takePhotoText;
+        //@assignable skel.mMenuItem.enabled;
+        //@ensures skel.mHolder.callbacksAttached == true;
+        //@ensures skel.impl.callbacksAttached == true;
+        //@ensures skel.camera != null;
+        //@ensures skel.mMenuItem.takePhotoText == true;
+        void checkPermissions(){
+            skel.permissionGranted();
+        }
+
+    }
+
     private /*@ spec_public nullable @*/ TextView mTextView;
     private /*@ spec_public nullable @*/ MenuItem mMenuItem;
     private /*@ spec_public nullable @*/ SurfaceView mSurfaceView;
@@ -310,9 +350,32 @@ public class MainActivitySkeleton {
         this.impl = impl;
     }
 
+    //@requires camera != null ==> camera.released == false;
+    //@ensures mSurfaceView != null;
+    //@ensures mProgressBar != null;
+    //@ensures mTextView != null;
+    //@ensures mHolder != null;
+    //@ensures isPreviewActive == true;
+    //@ensures mMenuItem != null;
+    //@assignable isPreviewActive;
+    //@assignable mTextView;
+    //@assignable mProgressBar;
+    //@assignable mSurfaceView;
+    //@assignable mHolder;
+    //@assignable camera;
+    //@assignable mMenuItem;
+    //@assignable camera.previewed;
+    //@assignable mHolder.callbacksAttached;
+    //@assignable impl.callbacksAttached;
+    //@assignable mMenuItem.takePhotoText;
+    //@assignable mMenuItem.enabled;
+    //@ensures mHolder.callbacksAttached == true;
+    //@ensures impl.callbacksAttached == true;
+    //@ensures camera != null;
+    //@ensures mMenuItem.takePhotoText == true;
     private void ensureEverythingWorks() {
         log.i("ensureEverythingWorks!");
-        impl.checkPermissions();
+        impl.getPermissionHandler(this).checkPermissions();
     }
 
     //@requires camera != null ==> camera.released == false;
@@ -333,6 +396,7 @@ public class MainActivitySkeleton {
     //@assignable mHolder.callbacksAttached;
     //@assignable impl.callbacksAttached;
     //@assignable mMenuItem.takePhotoText;
+    //@assignable mMenuItem.enabled;
     //@ensures mHolder.callbacksAttached == true;
     //@ensures impl.callbacksAttached == true;
     //@ensures camera != null;
@@ -388,9 +452,10 @@ public class MainActivitySkeleton {
     //@requires mTextView != null;
     //@requires mMenuItem != null;
     //@requires camera.released == false;
+    //@requires isPreviewActive ==> mMenuItem.enabled == true;
     //@ensures camera.previewed == isPreviewActive;
     //@ensures mMenuItem.takePhotoText == isPreviewActive;
-    //@ensures mMenuItem.enabled == true;
+    //@ensures \old(mMenuItem.enabled) == mMenuItem.enabled;
     //@assignable camera.previewed;
     //@assignable mMenuItem.takePhotoText;
     //@assignable mMenuItem.enabled;
@@ -450,7 +515,7 @@ public class MainActivitySkeleton {
     //@requires camera != null ==> mTextView != null;
     //@requires camera != null ==> mMenuItem != null;
     //@requires camera != null ==> camera.released == false;
-    //@ensures mMenuItem.enabled == true;
+    //@ensures \old(mMenuItem.enabled) == mMenuItem.enabled;
     //@assignable camera.previewed;
     //@assignable mMenuItem.takePhotoText;
     //@assignable mMenuItem.enabled;
@@ -481,6 +546,33 @@ public class MainActivitySkeleton {
     }
 
 
+    //@requires mSurfaceView == null;
+    //@requires mProgressBar == null;
+    //@requires mTextView == null;
+    //@requires mHolder == null;
+    //@requires mMenuItem == null;
+    //@ensures mSurfaceView != null;
+    //@ensures mProgressBar != null;
+    //@ensures mTextView != null;
+    //@ensures mHolder != null;
+    //@ensures isPreviewActive == true;
+    //@ensures mMenuItem != null;
+    //@assignable isPreviewActive;
+    //@assignable mTextView;
+    //@assignable mProgressBar;
+    //@assignable mSurfaceView;
+    //@assignable mHolder;
+    //@assignable camera;
+    //@assignable mMenuItem;
+    //@assignable camera.previewed;
+    //@assignable mHolder.callbacksAttached;
+    //@assignable impl.callbacksAttached;
+    //@assignable mMenuItem.takePhotoText;
+    //@assignable mMenuItem.enabled;
+    //@ensures mHolder.callbacksAttached == true;
+    //@ensures impl.callbacksAttached == true;
+    //@ensures camera != null;
+    //@ensures mMenuItem.takePhotoText == true;
     public void onCreate() {
         log.i("onCreate");
         ensureEverythingWorks();
@@ -506,6 +598,33 @@ public class MainActivitySkeleton {
         ensureEverythingDestroyed();
     }
 
+    //@requires mSurfaceView == null;
+    //@requires mProgressBar == null;
+    //@requires mTextView == null;
+    //@requires mHolder == null;
+    //@requires mMenuItem == null;
+    //@ensures mSurfaceView != null;
+    //@ensures mProgressBar != null;
+    //@ensures mTextView != null;
+    //@ensures mHolder != null;
+    //@ensures isPreviewActive == true;
+    //@ensures mMenuItem != null;
+    //@assignable isPreviewActive;
+    //@assignable mTextView;
+    //@assignable mProgressBar;
+    //@assignable mSurfaceView;
+    //@assignable mHolder;
+    //@assignable camera;
+    //@assignable mMenuItem;
+    //@assignable camera.previewed;
+    //@assignable mHolder.callbacksAttached;
+    //@assignable impl.callbacksAttached;
+    //@assignable mMenuItem.takePhotoText;
+    //@assignable mMenuItem.enabled;
+    //@ensures mHolder.callbacksAttached == true;
+    //@ensures impl.callbacksAttached == true;
+    //@ensures camera != null;
+    //@ensures mMenuItem.takePhotoText == true;
     public void onResume() {
         log.i("onResume");
         ensureEverythingWorks();
