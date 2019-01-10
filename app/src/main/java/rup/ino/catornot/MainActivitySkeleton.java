@@ -111,7 +111,7 @@ public class MainActivitySkeleton {
 
         //@assignable \nothing;
         //@ensures \result != null;
-        PermissionHandler getPermissionHandler(MainActivitySkeleton skel);
+        PermissionHandler getPermissionHandler();
 
     }
 
@@ -194,7 +194,9 @@ public class MainActivitySkeleton {
         //@requires s.mHolder != null;
         //@requires s.mProgressBar != null;
         //@requires s.camera != null ==> s.camera.released == true;
+        //@requires s.mMenuItem.enabled == true;
         //@ensures s.camera.previewed == s.isPreviewActive;
+        //@ensures s.camera.released == false;
         //@ensures s.camera != null;
         //@requires s.mMenuItem != null;
         //@ensures s.mMenuItem.takePhotoText == s.isPreviewActive;
@@ -220,6 +222,7 @@ public class MainActivitySkeleton {
             } catch (Exception e) {
 
             }
+
             s.updateMode();
         }
 
@@ -294,12 +297,6 @@ public class MainActivitySkeleton {
 
     public static class PermissionHandler{
 
-        private final  /*@ spec_public @*/ MainActivitySkeleton skel;
-
-        public PermissionHandler(MainActivitySkeleton skel){
-            this.skel = skel;
-        }
-
         //@requires skel.camera != null ==> skel.camera.released == false;
         //@ensures skel.mSurfaceView != null;
         //@ensures skel.mProgressBar != null;
@@ -323,7 +320,10 @@ public class MainActivitySkeleton {
         //@ensures skel.impl.callbacksAttached == true;
         //@ensures skel.camera != null;
         //@ensures skel.mMenuItem.takePhotoText == true;
-        void checkPermissions(){
+        //@ensures skel.mMenuItem.enabled == true;
+        //@ensures skel.camera.previewed == skel.isPreviewActive;
+        //@ensures skel.camera.released == false;
+        void checkPermissions(MainActivitySkeleton skel){
             skel.permissionGranted();
         }
 
@@ -376,9 +376,13 @@ public class MainActivitySkeleton {
     //@ensures impl.callbacksAttached == true;
     //@ensures camera != null;
     //@ensures mMenuItem.takePhotoText == true;
+    //@ensures mMenuItem.enabled == true;
+    //@ensures camera.previewed == isPreviewActive;
+    //@ensures camera.released == false;
     private void ensureEverythingWorks() {
         log.i("ensureEverythingWorks!");
-        impl.getPermissionHandler(this).checkPermissions();
+        PermissionHandler ph = impl.getPermissionHandler();
+        ph.checkPermissions(this);
     }
 
     //@requires camera != null ==> camera.released == false;
@@ -400,10 +404,13 @@ public class MainActivitySkeleton {
     //@assignable impl.callbacksAttached;
     //@assignable mMenuItem.takePhotoText;
     //@assignable mMenuItem.enabled;
+    //@ensures mMenuItem.enabled == true;
     //@ensures mHolder.callbacksAttached == true;
     //@ensures impl.callbacksAttached == true;
     //@ensures camera != null;
     //@ensures mMenuItem.takePhotoText == true;
+    //@ensures camera.previewed == isPreviewActive;
+    //@ensures camera.released == false;
     public void permissionGranted() {
         log.i("permissionGranted");
         if (mSurfaceView == null)
@@ -414,24 +421,31 @@ public class MainActivitySkeleton {
             mProgressBar = impl.findProgressBar();
         if (mMenuItem == null)
             mMenuItem = impl.findTakePhotoButton();
+        else
+            mMenuItem.setEnabled(true);
         impl.attachCallbacks();
         if (mHolder == null)
             mHolder = mSurfaceView.getHolder();
         mHolder.addCallback();
-
         isPreviewActive = true;
         if (camera == null) {
+            //@assert mMenuItem.enabled == true;
             impl.getHandler().postDelayedCameraOpener(this, 100);
+            //@assert mMenuItem.enabled == true;
         } else {
             //@assert camera != null;
             //@assert camera.released == false;
+            //@assert mMenuItem.enabled == true;
             updateMode();
+            //@assert mMenuItem.enabled == true;
             //@assert camera != null;
         }
 
     }
 
     //@ensures camera == null;
+    //@ensures mHolder == null;
+    //@ensures isPreviewActive == true;
     //@requires camera != null ==> camera.released == false;
     private void ensureEverythingDestroyed() {
         log.i("ensureEverythingDestroyed!");
@@ -454,11 +468,11 @@ public class MainActivitySkeleton {
     //@requires mProgressBar != null;
     //@requires mTextView != null;
     //@requires mMenuItem != null;
+    //@requires isPreviewActive ==> mMenuItem.enabled;
     //@requires camera.released == false;
-    //@requires isPreviewActive ==> mMenuItem.enabled == true;
     //@ensures camera.previewed == isPreviewActive;
     //@ensures mMenuItem.takePhotoText == isPreviewActive;
-    //@ensures \old(mMenuItem.enabled) == mMenuItem.enabled;
+    //@ensures mMenuItem.enabled == true;
     //@assignable camera.previewed;
     //@assignable mMenuItem.takePhotoText;
     //@assignable mMenuItem.enabled;
@@ -496,13 +510,16 @@ public class MainActivitySkeleton {
     //@requires mTextView != null;
     //@requires mProgressBar != null;
     //@requires mMenuItem != null;
-    //@ensures mMenuItem.enabled == true;
+    //@requires mMenuItem.enabled == true;
     //@assignable isCat;
     //@assignable isPreviewActive;
     //@assignable camera.previewed;
     //@assignable mMenuItem.takePhotoText;
     //@assignable mMenuItem.enabled;
-    //@ensures isPreviewActive != \old(isPreviewActive);
+    //@ensures isPreviewActive == !\old(isPreviewActive);
+    //@ensures camera.previewed == isPreviewActive;
+    //@ensures mMenuItem.takePhotoText == isPreviewActive;
+    //@ensures mMenuItem.enabled == true;
     public void takePhoto() {
         log.i("takePhoto");
         isPreviewActive = !isPreviewActive;
@@ -518,7 +535,7 @@ public class MainActivitySkeleton {
     //@requires camera != null ==> mTextView != null;
     //@requires camera != null ==> mMenuItem != null;
     //@requires camera != null ==> camera.released == false;
-    //@ensures \old(mMenuItem.enabled) == mMenuItem.enabled;
+    //@requires camera != null ==> mMenuItem.enabled == true;
     //@assignable camera.previewed;
     //@assignable mMenuItem.takePhotoText;
     //@assignable mMenuItem.enabled;
@@ -543,17 +560,14 @@ public class MainActivitySkeleton {
     }
 
     //@requires camera != null ==> camera.released == false;
+    //@ensures camera == null;
+    //@ensures mHolder == null;
+    //@ensures isPreviewActive == true;
     public void onDestroy() {
         log.i("onDestroy");
         ensureEverythingDestroyed();
     }
 
-
-    //@requires mSurfaceView == null;
-    //@requires mProgressBar == null;
-    //@requires mTextView == null;
-    //@requires mHolder == null;
-    //@requires mMenuItem == null;
     //@ensures mSurfaceView != null;
     //@ensures mProgressBar != null;
     //@ensures mTextView != null;
@@ -576,6 +590,10 @@ public class MainActivitySkeleton {
     //@ensures impl.callbacksAttached == true;
     //@ensures camera != null;
     //@ensures mMenuItem.takePhotoText == true;
+    //@ensures mMenuItem.enabled == true;
+    //@ensures camera.previewed == isPreviewActive;
+    //@ensures camera.released == false;
+    //@requires camera != null ==> camera.released == false;
     public void onCreate() {
         log.i("onCreate");
         ensureEverythingWorks();
@@ -586,6 +604,9 @@ public class MainActivitySkeleton {
     }
 
     //@requires camera != null ==> camera.released == false;
+    //@ensures camera == null;
+    //@ensures mHolder == null;
+    //@ensures isPreviewActive == true;
     public void onStop() {
         log.i("onStop");
         ensureEverythingDestroyed();
@@ -596,16 +617,14 @@ public class MainActivitySkeleton {
     }
 
     //@requires camera != null ==> camera.released == false;
+    //@ensures camera == null;
+    //@ensures mHolder == null;
+    //@ensures isPreviewActive == true;
     public void onPause() {
         log.i("onPause");
         ensureEverythingDestroyed();
     }
 
-    //@requires mSurfaceView == null;
-    //@requires mProgressBar == null;
-    //@requires mTextView == null;
-    //@requires mHolder == null;
-    //@requires mMenuItem == null;
     //@ensures mSurfaceView != null;
     //@ensures mProgressBar != null;
     //@ensures mTextView != null;
@@ -628,12 +647,15 @@ public class MainActivitySkeleton {
     //@ensures impl.callbacksAttached == true;
     //@ensures camera != null;
     //@ensures mMenuItem.takePhotoText == true;
+    //@ensures mMenuItem.enabled == true;
+    //@ensures camera.previewed == isPreviewActive;
+    //@ensures camera.released == false;
+    //@requires camera != null ==> camera.released == false;
     public void onResume() {
         log.i("onResume");
         ensureEverythingWorks();
     }
 
-    /*
     //@requires camera == null;
     //@requires mSurfaceView == null;
     //@requires mTextView == null;
@@ -644,60 +666,59 @@ public class MainActivitySkeleton {
     //@ensures mTextView == null;
     //@ensures mProgressBar == null;
     //@ensures mMenuItem == null;
-    public void simulateAppLifecycle(){
-        onCreate();
-        //@assert camera != null;
-        //@assert isPreviewActive == true;
-        //@assert camera.released == false;
-        //@assert camera.previewed == true;
-        //@assert mSurfaceView != null;
-        //@assert mTextView != null;
-        //@assert mProgressBar != null;
-        //@assert mMenuItem != null;
-        //@assert mMenuItem.takePhotoText == true;
-        onResume();
-        //@assert camera != null;
-        //@assert isPreviewActive == true;
-        //@assert camera.released == false;
-        //@assert camera.previewed == true;
-        //@assert mSurfaceView != null;
-        //@assert mTextView != null;
-        //@assert mProgressBar != null;
-        //@assert mMenuItem != null;
-        //@assert mMenuItem.takePhotoText == true;
-        takePhoto();
-        //@assert camera != null;
-        //@assert isPreviewActive == false;
-        //@assert camera.released == false;
-        //@assert camera.previewed == false;
-        //@assert mSurfaceView != null;
-        //@assert mTextView != null;
-        //@assert mProgressBar != null;
-        //@assert mMenuItem != null;
-        //@assert mMenuItem.takePhotoText == false;
-        takePhoto();
-        //@assert camera != null;
-        //@assert isPreviewActive == true;
-        //@assert camera.released == false;
-        //@assert camera.previewed == true;
-        //@assert mSurfaceView != null;
-        //@assert mTextView != null;
-        //@assert mProgressBar != null;
-        //@assert mMenuItem != null;
-        //@assert mMenuItem.takePhotoText == true;
-        onPause();
-        //@assert camera == null;
-        //@assert mSurfaceView == null;
-        //@assert mTextView == null;
-        //@assert mProgressBar == null;
-        //@assert mMenuItem == null;
-        onDestroy();
-        //@assert camera == null;
-        //@assert mSurfaceView == null;
-        //@assert mTextView == null;
-        //@assert mProgressBar == null;
-        //@assert mMenuItem == null;
+    //@requires pauseCounts.length > 0;
+    //@requires pauseCounts.length == photoTakes.length;
+    //@requires \forall int i; 0 <= i && i < pauseCounts.length; pauseCounts[i] >= 0 && photoTakes[i] >= 0;
+    public void simulateAppLifecycle(int[] pauseCounts,int[] photoTakes){
+        //@maintaining 0 <= i && i <= pauseCounts.length;
+        for(int i =0;i<pauseCounts.length;i++) {
+            onCreate();
+            //@assert camera != null;
+            //@assert isPreviewActive == true;
+            //@assert camera.released == false;
+            //@assert camera.previewed == true;
+            //@assert mSurfaceView != null;
+            //@assert mTextView != null;
+            //@assert mProgressBar != null;
+            //@assert mMenuItem != null;
+            //@assert mMenuItem.takePhotoText == true;
+
+            //@maintaining 0 <= j && j <= pauseCounts[i];
+            for (int j = 0;j<pauseCounts[i];j++) {
+                onResume();
+                //@assert camera != null;
+                //@assert isPreviewActive == true;
+                //@assert camera.released == false;
+                //@assert camera.previewed == true;
+                //@assert mSurfaceView != null;
+                //@assert mTextView != null;
+                //@assert mProgressBar != null;
+                //@assert mMenuItem != null;
+                //@assert mMenuItem.takePhotoText == true;
+
+                //@ghost boolean previewActive = true;
+                //@maintaining 0 <= k && k <= photoTakes[i] && previewActive == isPreviewActive;
+                for (int k=0;k<photoTakes[i];k++) {
+                    takePhoto();
+                    //@set previewActive = !previewActive;
+                    //@assert isPreviewActive == previewActive;
+                    //@assert camera.previewed == previewActive;
+                    //@assert mMenuItem.takePhotoText == previewActive;
+
+                    //@assert camera != null;
+                    //@assert camera.released == false;
+                    //@assert mSurfaceView != null;
+                    //@assert mTextView != null;
+                    //@assert mProgressBar != null;
+                    //@assert mMenuItem != null;
+
+                }
+
+                onPause();
+                //@assert camera == null;
+            }
+            onDestroy();
+            //@assert camera == null;
+        }
     }
-    /*
-    */
 }

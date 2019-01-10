@@ -361,10 +361,10 @@ public class MainActivity extends AppCompatActivity implements SurfaceHolder.Cal
         }
 
         @Override
-        public MainActivitySkeleton.PermissionHandler getPermissionHandler(MainActivitySkeleton skel) {
-            return new MainActivitySkeleton.PermissionHandler(skel){
+        public MainActivitySkeleton.PermissionHandler getPermissionHandler() {
+            return new MainActivitySkeleton.PermissionHandler(){
                 @Override
-                void checkPermissions() {
+                void checkPermissions(MainActivitySkeleton skel) {
                     if (ContextCompat.checkSelfPermission(MainActivity.this, Manifest.permission.CAMERA)
                             != PackageManager.PERMISSION_GRANTED) {
                         ActivityCompat.requestPermissions(MainActivity.this, new String[]{Manifest.permission.CAMERA}, 1);
